@@ -105,3 +105,15 @@ tooltip {
    the script now scrolls it for you */
 #custom-media {
 }
+
+/* app-switcher icon (matches theme) */
+#custom-app-switcher {
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: @foreground;
+  background: alpha(@background, 0);
+}
+#custom-app-switcher:hover {
+  background: alpha(@accent, 0.12);
+}
