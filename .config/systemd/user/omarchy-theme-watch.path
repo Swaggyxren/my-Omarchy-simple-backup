@@ -1,0 +1,13 @@
+[Unit]
+Description=Watch Omarchy current theme for changes
+
+[Path]
+# Re-run whenever these change (theme switch usually updates at least one)
+PathChanged=%h/.config/omarchy/current/theme/waybar.css
+PathChanged=%h/.config/omarchy/current/theme/custom_theme.json
+PathChanged=%h/.config/omarchy/current/theme/gtk.css
+
+Unit=omarchy-fuzzel-theme.service
+
+[Install]
+WantedBy=default.target

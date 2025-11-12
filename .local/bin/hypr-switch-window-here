@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ---- tune these ----
+BAR_HEIGHT=30          # waybar "height"
+BAR_MARGIN=2           # waybar "margin": "2px"
+LEFT_OFFSET=160        # distance from monitor's left edge to the left side of the hyprland/window chip
+POPUP_WIDTH=60
+ROW_HEIGHT=12
+LINES=4
+FONT="CaskaydiaMono Nerd Font Propo:size=9"
+
+# Path to your current theme file
+THEME_FILE="$HOME/.config/omarchy/current/theme/waybar.css"
+
+# Extract hex value of @background (first match)
+THEME_BG=$(grep -Po '(?<=@define-color background )#[0-9a-fA-F]+' "$THEME_FILE" | head -n1)
+THEME_FG=$(grep -Po '(?<=@define-color foreground )#[0-9a-fA-F]+' "$THEME_FILE" | head -n1)
+# fallback if not found
+THEME_BG="${THEME_BG:-#1a1c23}"
+THEME_FG="${THEME_FG:-#dee1e6}"
+
+# Cursor position
+read -r CX CY < <(hyprctl -j cursorpos | jq -r '"\(.x) \(.y)"')
+
+# Monitor under cursor
+MON_JSON="$(hyprctl -j monitors)"
+read -r MX MY MW MH < <(
+  jq -r --argjson cx "$CX" --argjson cy "$CY" '
+    .[] | select($cx >= .x and $cx < (.x+.width) and
+                 $cy >= .y and $cy < (.y+.height)) |
+    "\(.x) \(.y) \(.width) \(.height)"' <<<"$MON_JSON"
+)
+# Fallback to focused monitor if needed
+if [ -z "${MW:-}" ]; then
+  read -r MX MY MW MH < <(jq -r '.[] | select(.focused) | "\(.x) \(.y) \(.width) \(.height)"' <<<"$MON_JSON")
+fi
+
+# Clamp width to monitor
+MAXW=$(( MW - BAR_MARGIN*2 - 8 ))
+[ "$POPUP_WIDTH" -gt "$MAXW" ] && POPUP_WIDTH="$MAXW"
+
+# Build the window list
+LIST="$(hyprctl -j clients | jq -r '.[] | "\(.address)\t\(.workspace.id)\t\(.class)\t\(.title)"')"
+[ -z "$LIST" ] && exit 0
+# Pretty display with icons (uses window class -> icon map)
+SHOW="$(
+  awk -F'\t' '
+    function lower(s){ for(i=1;i<=length(s);i++){ c=substr(s,i,1); lc=tolower(c); out=out lc } s=out; out=""; return s }
+    function icon_for(cls,  c){
+      c = lower(cls)
+
+      # --- map common classes to Nerd Font glyphs ---
+      if (c ~ /zen/)                return "󰈹"  # browser
+      if (c ~ /chrom/) return ""
+      if (c ~ /obsidian/)           return ""
+      if (c ~ /vscodium|code(-oss)?/) return "󰨞"
+      if (c ~ /nvim|neovim/)        return ""
+      if (c ~ /ghostty/)            return "󰊠"
+      if (c ~ /alacritty|kitty|wezterm|foot|term/) return ""
+      if (c ~ /spotify/)            return ""
+      if (c ~ /discord|vesktop/)    return ""
+      if (c ~ /beeper/)             return "󰻞"
+      if (c ~ /steam/)              return ""
+      if (c ~ /nautilus|thunar|dolphin|nemo|pcmanfm/) return "󰣆"
+      if (c ~ /imv|feh|gthumb|eog|image|viewer/) return ""
+      if (c ~ /btop|htop|bashtop|ytop|gotop/)    return "󰧨"
+      if (c ~ /cmatrix/)            return "󰘨"
+      if (c ~ /fish|bash|zsh|shell/) return ""
+      if (c ~ /obsproject\.Studio|obs/) return ""
+      if (c ~ /bluetooth|blueberry/) return ""
+      if (c ~ /org\.gnome\.Settings|settings|control/) return "󰒓"
+
+      # fallback: generic app icon
+      return "󰣆"
+    }
+    {
+      addr=$1; ws=$2; cls=$3; title=$4;
+      ico=icon_for(cls);
+      # Just the icon and title — clean minimalist style
+      printf "%s  %s\t%s\n", ico, title, addr
+    }
+  ' <<<"$LIST"
+)"
+
+
+# Position: left edge aligned to monitor + offset; Y just below the bar
+X=$(( MX + LEFT_OFFSET ))
+Y=0
+# Y=$(( MY + BAR_HEIGHT + BAR_MARGIN*2 + 2 ))
+
+SEL="$(printf "%s" "$SHOW" | fuzzel --dmenu \
+  --anchor top-left \
+  --x "$X" --y "$Y" \
+  --width "$POPUP_WIDTH" \
+  --lines "$LINES" \
+  --line-height "$ROW_HEIGHT" \
+  --prompt " Select Window " \
+  --font "$FONT" \
+  --horizontal-pad 14 \
+  --background "${THEME_BG}f0" \
+  --text "${THEME_FG}a0")"
+
+[ -z "${SEL:-}" ] && exit 0
+ADDR="${SEL##*$'\t'}"
+hyprctl dispatch focuswindow "address:$ADDR"

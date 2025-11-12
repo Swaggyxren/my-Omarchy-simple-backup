@@ -1,0 +1,6 @@
+[Unit]
+Description=Regenerate fuzzel.ini from current Omarchy theme
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -lc %h/.config/omarchy/omc-fuzzel-from-waybar.sh
