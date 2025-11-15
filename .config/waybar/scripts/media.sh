@@ -1,92 +1,79 @@
 #!/usr/bin/env bash
-# Theme-blended media info for Waybar
-# - Prefixes a play/pause icon (no CSS pseudo-elements needed)
-# - Marquee scroll implemented here (no GTK animations)
-# - Uses only neutral/themed colors (no per-app overrides)
+# ~/.config/waybar/scripts/media.sh
+# Outputs JSON for Waybar. Provides a character-scrolling marquee when title is long.
+# Configurable knobs below.
 
-set -euo pipefail
+MAX_CHARS=38        # max visible characters before scrolling
+STEP_SECONDS=1      # how often to advance by one character (seconds) — use same as Waybar interval for best sync
+PADDING="   "       # gap inserted between end and beginning when scrolling
+ELLIPSIS="…"        # show if you prefer an ellipsis when truncated static
+PLAY_ICON="⏵"
+PAUSE_ICON="⏸"
+STOP_ICON="■"
 
-cache="/tmp/waybar_media_cache"  # stores last full text + offset for marquee
-width=30                         # visible width for scrolling window
-sep=" • "                        # separator used when looping text
-
-# pick first available player
+# get primary player (first line)
 player=$(playerctl -l 2>/dev/null | head -n1 || true)
-if [ -z "${player:-}" ]; then
-  echo '{"text": "", "class": "none"}'
+status=$(playerctl -p "$player" status 2>/dev/null || echo "")
+artist=$(playerctl -p "$player" metadata artist 2>/dev/null || true)
+title=$(playerctl -p "$player" metadata title 2>/dev/null || true)
+album=$(playerctl -p "$player" metadata album 2>/dev/null || true)
+
+# build display text
+if [[ -n "$artist" && -n "$title" ]]; then
+  base_text="$artist - $title"
+elif [[ -n "$title" ]]; then
+  base_text="$title"
+else
+  base_text=""
+fi
+
+# set class for styling (optional)
+cls="media"
+if [[ "$player" == *spotify* ]]; then cls="spotify"; fi
+if [[ "$player" == *vlc* ]]; then cls="vlc"; fi
+
+# set icon
+icon="$PLAY_ICON"
+if [[ "$status" == "Paused" ]]; then icon="$PAUSE_ICON"; fi
+if [[ "$status" == "Stopped" || -z "$player" ]]; then icon="$STOP_ICON"; fi
+
+# if no player or no text, print nothing (or a small icon)
+if [[ -z "$player" || -z "$base_text" ]]; then
+  # If you prefer to hide when no player: echo '{"text": ""}' and exit 0
+  echo "{\"text\":\"\",\"class\":\"$cls\",\"tooltip\":\"No player\"}"
   exit 0
 fi
 
-status=$(playerctl --player="$player" status 2>/dev/null || echo "")
-artist=$(playerctl --player="$player" metadata artist 2>/dev/null || echo "")
-title=$(playerctl --player="$player" metadata title 2>/dev/null || echo "")
+# prepare scrolling text by adding padding so it loops nicely
+scroll_source="${base_text}${PADDING}"
 
-# build base title
-if [ -n "$artist" ] && [ -n "$title" ]; then
-  base="$artist — $title"
-elif [ -n "$title" ]; then
-  base="$title"
+# get scrolling state index based on epoch so it persists across restarts
+# compute total length we can scroll through
+len=${#scroll_source}
+if (( len <= MAX_CHARS )); then
+  # fits — no scrolling; show icon + text maybe trimmed safely
+  display="$icon $scroll_source"
 else
-  base="$status"
+  # step based on epoch seconds divided by STEP_SECONDS
+  epoch=$(date +%s)
+  step=$(( epoch / STEP_SECONDS ))
+  # position cycles through [0 .. len-1]
+  pos=$(( step % len ))
+  # build substring of length MAX_CHARS from pos (wrap-around)
+  # create doubled buffer to easily take substring across boundary
+  buf="${scroll_source}${scroll_source}"
+  # take substring
+  display_text="${buf:pos:MAX_CHARS}"
+  # if we sliced whitespace at edges, trim ends
+  # prefix icon
+  display="$icon $display_text"
 fi
 
-# icon from state (use Nerd Font glyphs)
-if [ "$status" = "Playing" ]; then
-  icon=""  # pause
-  state="playing"
-elif [ "$status" = "Paused" ]; then
-  icon=""  # play
-  state="paused"
-else
-  icon=""  # default to play
-  state="stopped"
-fi
+# escape JSON-safe (escape backslash and double quote)
+esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;s/\n/\\n/;ta'; }
 
-# marquee: show a sliding window if text is long
-full="$base"
-display="$base"
-offset=0
+json_text=$(esc "$display")
+tooltip_text=$(esc "${artist:+$artist - }${title:+$title}${album:+ — $album}")
 
-# read previous cache (format: first line = last text, second line = last offset int)
-if [ -f "$cache" ]; then
-  last_text=$(sed -n '1p' "$cache" 2>/dev/null || echo "")
-  last_off=$(sed -n '2p' "$cache" 2>/dev/null || echo "0")
-else
-  last_text=""
-  last_off="0"
-fi
-
-# advance offset only if text hasn't changed and is long
-if [ ${#full} -gt $width ]; then
-  if [ "$full" = "$last_text" ]; then
-    offset=$(( ( ${last_off:-0} + 1 ) ))
-  else
-    offset=0
-  fi
-
-  # create a doubled string with a separator so it wraps nicely
-  loop="$full$sep$full$sep"
-  # keep offset in bounds
-  loop_len=${#loop}
-  if [ $offset -ge $loop_len ]; then
-    offset=$(( offset % loop_len ))
-  fi
-  display="${loop:$offset:$width}"
-else
-  display="$full"
-  offset=0
-fi
-
-# write cache
-{
-  printf '%s\n' "$full"
-  printf '%s\n' "$offset"
-} > "$cache"
-
-# JSON-escape
-escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-
-text_out="$(escape "$icon $display")"
-
-printf '{"text":"%s","alt":"%s","class":"media %s%s"}\n' \
-  "$text_out" "$(escape "$status")" "$state" ""
+# print JSON (Waybar expects valid JSON when return-type=json)
+printf '{"text":"%s","class":"%s","tooltip":"%s"}\n' "$json_text" "$cls" "$tooltip_text"
