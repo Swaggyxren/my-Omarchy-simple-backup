@@ -33,7 +33,6 @@
 #cpu,
 #battery,
 #pulseaudio,
-#backlight,
 #custom-omarchy,
 #custom-screenrecording-indicator,
 #custom-update {
@@ -118,4 +117,3 @@ tooltip {
 #custom-app-switcher:hover {
   background: alpha(@accent, 0.12);
 }
-

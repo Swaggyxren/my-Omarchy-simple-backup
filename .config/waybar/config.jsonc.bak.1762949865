@@ -12,7 +12,6 @@
     "bluetooth",
     "network",
     "pulseaudio",
-    "backlight",
     "cpu",
     "battery"
   ],
@@ -115,17 +114,6 @@
     "format-icons": {
       "default": ["", "", ""]
     }
-  },
- "backlight": {
-    "device": "intel_backlight",
-    "format": "{percent}% {icon}",
-    "format-icons": [
-      "🌑",
-      "🌘",
-      "🌗",
-      "🌖",
-      "🌕"
-    ]
   },
   "custom/app-switcher": {
   "format": "󰍹",

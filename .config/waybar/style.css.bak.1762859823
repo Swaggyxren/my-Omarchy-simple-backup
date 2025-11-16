@@ -33,7 +33,6 @@
 #cpu,
 #battery,
 #pulseaudio,
-#backlight,
 #custom-omarchy,
 #custom-screenrecording-indicator,
 #custom-update {
@@ -82,40 +81,24 @@ tooltip {
 #custom-screenrecording-indicator.active {
   color: #a55555;
 }
-/* MEDIA CONTROLLER — GTK-safe, theme-blended */
-#custom-media {
-  color: @foreground;                 /* pulls from current theme */
-  background: alpha(@background, 0);  /* transparent by default */
-  margin-left: 10px;
-  margin-right: 4px;
-  padding: 0 8px;
-  border-radius: 9999px;              /* subtle pill */
-  opacity: 0.95;
+
+#custom-media.media {
+    color: @theme_text_color;
 }
 
+#custom-media.spotify {
+    color: #1DB954;
+}
+
+#custom-media.vlc {
+    color: orange;
+}
+#custom-media {
+  margin-right: 4px; /* closer to tray */
+  margin-left: 10px; /* consistent spacing on the left */
+  transition: opacity 120ms ease;
+}
 #custom-media:hover {
-  background: alpha(@accent, 0.18);
-  opacity: 1;
-}
-
-/* subtle state dimming; still uses theme color */
-#custom-media.paused  { opacity: 0.9; }
-#custom-media.stopped { opacity: 0.85; }
-
-/* constrain width so long titles don’t stretch the bar;
-   the script now scrolls it for you */
-#custom-media {
-}
-
-/* app-switcher icon (matches theme) */
-#custom-app-switcher {
-  margin-left: 8px;
-  padding: 0 6px;
-  border-radius: 6px;
-  color: @foreground;
-  background: alpha(@background, 0);
-}
-#custom-app-switcher:hover {
-  background: alpha(@accent, 0.12);
+  opacity: 0.75;
 }
 
