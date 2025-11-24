@@ -12,25 +12,25 @@
     "bluetooth",
     "network",
     "pulseaudio",
+    "backlight",
     "cpu",
     "battery"
   ],
-  "hyprland/workspaces": {
-    "on-click": "activate",
-    "format": "{icon}",
-    "format-icons": {
-      "default": "",
-      "1": "1",
-      "2": "2",
-      "3": "3",
-      "4": "4",
-      "5": "5",
-      "6": "6",
-      "7": "7",
-      "8": "8",
-      "9": "9",
-      "10": "0",
-      "active": "󱓻"
+"hyprland/workspaces": {
+  "on-click": "activate",
+  "format": "{icon}",
+  "format-icons": {
+    "default": "",
+    "1": "1",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "5",
+    "6": "6",
+    "7": "7",
+    "8": "8",
+    "9": "9",
+    "active": "󱓻"
     },
     "persistent-workspaces": {
       "1": [],
@@ -58,10 +58,10 @@
   "cpu": {
     "interval": 5,
     "format": "󰍛",
-    "on-click": "omarchy-launch-or-focus-tui btop"
+    "on-click": "xdg-terminal-exec btop"
   },
   "clock": {
-    "format": "{:L%A %H:%M}",
+    "format": "{:L%A %I:%M %p}",
     "format-alt": "{:L%d %B W%V %Y}",
     "tooltip": false,
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
@@ -101,14 +101,13 @@
   "bluetooth": {
     "format": "",
     "format-disabled": "󰂲",
-    "format-connected": "󰂱",
-    "format-no-controller": "",
+    "format-connected": "",
     "tooltip-format": "Devices connected: {num_connections}",
-    "on-click": "omarchy-launch-bluetooth"
+    "on-click": "blueberry"
   },
   "pulseaudio": {
     "format": "{icon}",
-    "on-click": "omarchy-launch-or-focus-tui wiremix",
+    "on-click": "xdg-terminal-exec --app-id=com.omarchy.Wiremix -e wiremix",
     "on-click-right": "pamixer -t",
     "tooltip-format": "Playing at {volume}%",
     "scroll-step": 5,
@@ -117,7 +116,7 @@
       "default": ["", "", ""]
     }
   },
-  "backlight": {
+ "backlight": {
     "device": "intel_backlight",
     "format": "{percent}% {icon}",
     "format-icons": [
@@ -132,8 +131,7 @@
   "format": "󰍹",
   "tooltip": "Switch window",
   "on-click": "~/.local/bin/hypr-switch-window-here"
-},
-},
+  },
   "custom/media": {
   "exec": "~/.config/waybar/scripts/media.sh",
   "interval": 1,
@@ -146,7 +144,7 @@
   "on-scroll-down": "playerctl position 10-",
   "escape": true,
   "exec-if": "playerctl -l | grep -q ."
-},
+  },
   "group/tray-expander": {
     "orientation": "inherit",
     "drawer": {
@@ -156,7 +154,7 @@
     "modules": ["custom/expand-icon", "tray"]
   },
   "custom/expand-icon": {
-    "format": "",
+    "format": "",
     "tooltip": false
   },
   "custom/screenrecording-indicator": {
