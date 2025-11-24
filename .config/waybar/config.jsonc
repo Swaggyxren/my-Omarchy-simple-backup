@@ -12,6 +12,7 @@
     "bluetooth",
     "network",
     "pulseaudio",
+    "backlight",
     "cpu",
     "battery"
   ],
@@ -132,7 +133,6 @@
   "format": "󰍹",
   "tooltip": "Switch window",
   "on-click": "~/.local/bin/hypr-switch-window-here"
-},
 },
   "custom/media": {
   "exec": "~/.config/waybar/scripts/media.sh",
