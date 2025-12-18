@@ -1,0 +1,7 @@
+#custom-media {
+  margin-left: 10px;
+  margin-right: 4px;
+}
+
+#custom-media.spotify { color: #1DB954; }
+#custom-media.vlc { color: orange; }
